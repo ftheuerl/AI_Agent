@@ -1,5 +1,8 @@
 import os
 import argparse
+from prompts import system_prompt
+from functions.get_files_info import schema_get_files_info, schema_get_files_info
+from functions.call_function import available_functions
 
 from dotenv import load_dotenv
 from google import genai
@@ -25,8 +28,14 @@ def main():
 
     client = genai.Client(api_key=api_key)
     response = client.models.generate_content(
-        model='gemini-2.5-flash', 
-        contents=messages
+    model='gemini-2.5-flash',
+    contents=messages,
+    #config=types.GenerateContentConfig(
+    #system_instruction=system_prompt,
+    #temperature=0),
+    config=types.GenerateContentConfig(
+    tools=[available_functions], system_instruction=system_prompt #new add
+        )
     )
 
     usage_metadata = response.usage_metadata
@@ -40,8 +49,12 @@ def main():
         print(f"User prompt: {args.user_prompt}")
         print(f"Prompt tokens: {prompt_tokens}")
         print(f"Response tokens: {response_tokens}")
-    print("Response:")
-    print(response.text)
+    if response.function_calls:
+        for function_call in response.function_calls:
+            print(f"Calling function: {function_call.name}({function_call.args})")
+    else:
+        print("Response:")
+        print(response.text)
 
 if __name__ == "__main__":
     main()
